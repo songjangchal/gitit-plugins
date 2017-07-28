@@ -1,0 +1,14 @@
+[Unit]
+Description=Gitit wiki
+After=network.target
+
+[Service]
+ExecStart=/app/cabal/bin/gitit -f /home/gitit/config
+WorkingDirectory=/home/gitit/default
+User=gitit
+Group=gitit
+#Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+
