@@ -1,3 +1,4 @@
+{-# LANGUAGE  OverloadedStrings #-}
 module PlantUml (plugin) where
 
 -- This plugin allows you to include a plantuml diagram
@@ -33,6 +34,7 @@ import System.Environment (unsetEnv)
 import System.FilePath ((</>))
 import System.FilePath
 import System.IO
+import qualified Data.Text as T
 
 plugin :: Plugin
 plugin = mkPageTransformM transformBlock
@@ -42,7 +44,7 @@ transformBlock (CodeBlock (id, classes, namevals) contents) | "plantuml" `elem` 
   cfg <- askConfig
   let filetype = "svg"
       outdir = staticDir cfg </> "img"
-      incontent = "@startuml\n" ++ contents ++ "\n@enduml" 
+      incontent = "@startuml\n" ++ T.unpack contents ++ "\n@enduml" 
 --  liftIO $ withTempFile outdir "diag.puml" $ \infile inhandle -> do
   liftIO $ do
 --    unsetEnv "DISPLAY"
@@ -53,8 +55,8 @@ transformBlock (CodeBlock (id, classes, namevals) contents) | "plantuml" `elem` 
 
 --    let outname = takeFileName $ infile -<.> filetype
     let (name, outfile) = case lookup "name" namevals of
-                            Just fn   -> ([Str fn], fn <.> filetype)
-                            Nothing   -> ([], uniqueName contents <.> filetype)
+                            Just fn   -> ([Str fn],  (T.unpack fn) <.> filetype)
+                            Nothing   -> ([], uniqueName (T.unpack contents) <.> filetype)
     
     (ec, stdout, stderr) <- readProcessWithExitCode "java"
                             ["-jar", "/opt/plantuml.jar",
@@ -67,8 +69,10 @@ transformBlock (CodeBlock (id, classes, namevals) contents) | "plantuml" `elem` 
       then do
       inh <- openFile (outdir </> outfile) ReadWriteMode
       hPutStr inh stdout
+--      hPutStr inh incontent
+--      hPutStr inh (T.unpack contents)
       hClose inh
-      return $ Para [ Image (id,classes,namevals) [Str outfile] ("/img" </> outfile, "") ]
+      return $ Para [ Image (id,classes,namevals) [Str $ T.pack outfile] (T.pack $  "/img" </> outfile, "") ]
       else error $ "plantuml returned an error status: " ++ stderr
 transformBlock x = return x
 
